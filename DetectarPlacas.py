@@ -42,15 +42,15 @@ def ocrImagePlate():
 
     config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 --psm 6'
 
-    saida = pytesseract.image_to_string(roi, lang='eng', config=config)
+    output = pytesseract.image_to_string(roi, lang='eng', config=config)
 
-    print(saida)
+    print(output)
 
 
 if __name__ == "__main__":
     contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_21_55_25_Pro.jpg') # normal ABC1234  if perimeter > 300: // n, binary_roi = cv2.threshold(gray_roi, 65, 255, cv2.THRESH_BINARY)
     # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_18_14_Pro.jpg')       # mercosul FBR2A23  if perimeter > 300 and perimeter < 350: // roi_risezed = cv2.resize(roi, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
-    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_23_23_Pro.jpg')    # moto
+    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_23_23_Pro.jpg')    # moto (not working)
     
     processamento_roi = preProcessamentoRoi()
 
