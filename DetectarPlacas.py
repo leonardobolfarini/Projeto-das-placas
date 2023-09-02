@@ -18,10 +18,8 @@ def contorno_imagem(imagem):
                 cv2.rectangle(image_resized, (x, y), (x + height, y + width), (90, 255, 35), 3)
                 roi = image_resized[y:y + width, x:x +height]
                 cv2.imwrite('D:/VSCODE_PY/OpenCV/roi.png', roi)
-
-    cv2.imshow('contourno', image_resized)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+    cv2.imshow('roi', image_resized)
+    cv2.waitKey(0)
 
 def preProcessamentoRoi():
     roi = cv2.imread('D:/VSCODE_PY/OpenCV/roi.png')
@@ -30,29 +28,47 @@ def preProcessamentoRoi():
     
     roi_risezed = cv2.resize(roi, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
     gray_roi = cv2.cvtColor(roi_risezed, cv2.COLOR_BGR2GRAY)   
-    n, binary_roi = cv2.threshold(gray_roi, 65, 255, cv2.THRESH_BINARY)
+    n, binary_roi = cv2.threshold(gray_roi, 70, 255, cv2.THRESH_BINARY)
     blur_roi = cv2.GaussianBlur(binary_roi, (5, 5), 0)
-    cv2.imshow('blur', blur_roi)
+    # cv2.imshow('blur', blur_roi)
     cv2.imwrite('D:/VSCODE_PY/OpenCV/roi.png', blur_roi)
+    cv2.imshow('blur', blur_roi)
     cv2.waitKey()
-    cv2.destroyAllWindows()
 
 def ocrImagePlate():
     roi = cv2.imread('D:/VSCODE_PY/OpenCV/roi.png')
 
     config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 --psm 6'
 
-    output = pytesseract.image_to_string(roi, lang='eng', config=config)
+    saida = pytesseract.image_to_string(roi, lang='eng', config=config)
 
-    print(output)
+    print(saida)
 
 
 if __name__ == "__main__":
-    contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_21_55_25_Pro.jpg') # normal ABC1234  if perimeter > 300: // n, binary_roi = cv2.threshold(gray_roi, 65, 255, cv2.THRESH_BINARY)
-    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_18_14_Pro.jpg')       # mercosul FBR2A23  if perimeter > 300 and perimeter < 350: // roi_risezed = cv2.resize(roi, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
-    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_23_23_Pro.jpg')    # moto (not working)
-    
-    processamento_roi = preProcessamentoRoi()
 
-    ocrImagePlate()
-    
+    cap = cv2.VideoCapture(0)
+
+    if cap.isOpened():
+        validation, frame = cap.read()
+        while validation:
+            validation, frame = cap.read()
+
+            cv2.imshow('webcam', frame)
+                
+            k = cv2.waitKey(5000)
+
+            cv2.imwrite('imagem_webcam.png', frame)
+
+            contorno_imagem('D:/VSCODE_PY/OpenCV/imagem_webcam.png')
+
+            processamento_roi = preProcessamentoRoi()
+
+            ocrImagePlate()
+            if k == ord('/'):
+                break
+
+    # imagecap('http://211.132.61.124/mjpg/video.mjpg')
+    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_21_55_25_Pro.jpg') # normal ABC1234  if perimeter > 300: // n, binary_roi = cv2.threshold(gray_roi, 65, 255, cv2.THRESH_BINARY)
+    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_18_14_Pro.jpg')       # mercosul FBR2A23  if perimeter > 300 and perimeter < 350: // roi_risezed = cv2.resize(roi, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+    # contorno_imagem('D:/VSCODE_PY/Imagens/WIN_20230831_22_23_23_Pro.jpg')    # moto
