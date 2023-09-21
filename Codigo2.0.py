@@ -3,8 +3,6 @@ import pytesseract
 import threading
 import pymysql
 import logging
-import time
-
 
 class db:
     host:str
