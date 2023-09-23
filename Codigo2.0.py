@@ -4,28 +4,32 @@ import threading
 import pymysql
 import logging
 
-class db:
-    host:str
-    user:str
-    password:str
-    database:str
+class database:
+    _host:str
+    _user:str
+    _password:str
+    _database:str
+
+    def __init__(self):
+        self._host = None
+        self._user = None
+        self._password = None
+        self._database = None
+    
     @classmethod
-    def conect(cls):
+    def _connect(cls):
         connection = pymysql.connect(
-            host=cls.host,
-            user=cls.user,
-            password=cls.password,
-            database=cls.database
+            host=cls._host,
+            user=cls._user,
+            password=cls._password,
+            database=cls._database
         )
         cursor = connection.cursor()
         return cursor
     
-    
-
-
 class imagem:
     
-    def ImageCapture(self):
+    def _ImageCapture(self):
         cap = cv2.VideoCapture(0)
         validation, frame = cap.read()
         while validation:
@@ -36,11 +40,12 @@ class imagem:
                 cap.release()
                 cv2.destroyAllWindows()
                 break
-            self.contorno_imagem(frame)
-            self.preProcessamentoRoi()
-            self.ocrImagePlate()
+
+            self._contorno_imagem(frame)
+            self._preProcessamentoRoi()
+            self._ocrImagePlate()
     
-    def contorno_imagem(self, frame):
+    def _contorno_imagem(self, frame):
         if frame is not None:
             image_resized = cv2.resize(frame, (800, 400))
             gray_image = cv2.cvtColor(image_resized, cv2.COLOR_BGR2GRAY)
@@ -58,7 +63,7 @@ class imagem:
                         roi = image_resized[y:y + width, x:x +height]
                         cv2.imwrite('D:/VSCODE_PY/Projeto_placas/roi.png', roi)
     
-    def preProcessamentoRoi(self):
+    def _preProcessamentoRoi(self):
         max_width = 800
         max_height = 400    
         roi = cv2.imread('D:/VSCODE_PY/Projeto_placas/roi.png')
@@ -73,28 +78,27 @@ class imagem:
         n, binary_roi = cv2.threshold(gray_roi, 70, 255, cv2.THRESH_BINARY)
         blur_roi = cv2.GaussianBlur(binary_roi, (5, 5), 0)
         cv2.imwrite('D:/VSCODE_PY/Projeto_placas/roi.png', blur_roi)
-        # cv2.imshow('blur', blur_roi)
-        # cv2.waitKey()
 
-    def ocrImagePlate(self):
+    def _ocrImagePlate(self):
         roi = cv2.imread('D:/VSCODE_PY/Projeto_placas/roi.png')
         if roi is not None:
             roi_resized = cv2.resize(roi, (800, 400))
-
+            
             config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 --psm 6'
-
+            
             saida = pytesseract.image_to_string(roi_resized, lang='eng', config=config)
+            
             saida = saida.strip().upper()
 
-            database = db
-            database.host = 'localhost'
-            database.user = 'root'
-            database.password = '.VINxBLOw[JfTdo-'
-            database.database = 'cadastros'
-
-            cursor = db.conect()
+            db = database
+            db._host = 'localhost'
+            db._user = 'root'
+            db._password = '.VINxBLOw[JfTdo-'
+            db._database = 'cadastros'
+            cursor = db._connect()
             cursor.execute(f"select placa_automovel from pessoas where placa_automovel = '{saida}';")
             placa = cursor.fetchall()
+            
             if len(placa) > 0:
                 placa = placa[0][0]
                 placa = placa.strip().upper()
@@ -109,8 +113,7 @@ class imagem:
                 print(saida)
 
 if __name__ == "__main__":
-
     img = imagem()
-    thread_processamnto = threading.Thread(target=img.ImageCapture(), daemon=True)
+    thread_processamnto = threading.Thread(target=img._ImageCapture(), daemon=True)
     thread_processamnto.start()
     
