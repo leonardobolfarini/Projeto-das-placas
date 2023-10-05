@@ -2,7 +2,12 @@ import cv2
 import pytesseract
 import threading
 import pymysql
+import serial
 import logging
+
+arduino = serial.Serial("COM6", 9600)
+
+pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
 class database:
     _host:str
@@ -31,29 +36,26 @@ class database:
             print('Não foi possivel estabelecer a conexão com o banco de dados')
     
 class imagem:
-    
+    arduino.write(b'0')
     # Captura o frame da webcam
-    def _ImageCapture(self):
-        try:
-        # parâmetro passado se refere a qual webcam será capturada a imagem
-            cap = cv2.VideoCapture(0)
+    def _ImageCapture(self):   
+    # parâmetro passado se refere a qual webcam será capturada a imagem
+        cap = cv2.VideoCapture(0)
+        validation, frame = cap.read()
+        while validation:
             validation, frame = cap.read()
-            while validation:
-                validation, frame = cap.read()
-                cv2.imshow('Webcam', frame)
-                # parâmetro passado se refere ao tempo em milisegundos entre cada captura
-                k = cv2.waitKey(2000)
-                # caso o botão com valor 113 (F2) seja apertado, o código é interrompido
-                if k == 113:
-                    cap.release()
-                    cv2.destroyAllWindows()
-                    break
-                # chama função com o frame capturado
-                self._contorno_imagem(frame)
-                self._preProcessamentoRoi()
-                self._ocrImagePlate()
-        except:
-            print('Não foi possivel capturar a imagem da webcam')
+            cv2.imshow('Webcam', frame)
+            # parâmetro passado se refere ao tempo em milisegundos entre cada captura
+            k = cv2.waitKey(2000)
+            # caso o botão com valor 113 (F2) seja apertado, o código é interrompido
+            if k == 113:
+                cap.release()
+                cv2.destroyAllWindows()
+                break
+            # chama função com o frame capturado
+            self._contorno_imagem(frame)
+            self._preProcessamentoRoi()
+            self._ocrImagePlate()
 
     def _contorno_imagem(self, frame):
         if frame is not None:
@@ -105,6 +107,7 @@ class imagem:
         roi = cv2.imread('D:/VSCODE_PY/Projeto_placas/roi.png')
         if roi is not None:
             roi_resized = cv2.resize(roi, (800, 400))
+            # cv2.imshow('roi', roi_resized)
             # configuração de caracteres que o pytessetact irá analisar
             config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 --psm 6'
             # imagem a ser analisada as letras,a linguagem e a configuração passada acima
@@ -121,22 +124,24 @@ class imagem:
             # consulta do banco de dados em SQL
             cursor.execute(f"select placa_automovel from pessoas where placa_automovel = '{saida}';")
             placa = cursor.fetchall()
-            
+
             if len(placa) > 0:
                 placa = placa[0][0]
                 placa = placa.strip().upper()
-            
-            
+
             if saida == placa:
+                print('foi!!!!!!!!!!!!!')
+                arduino.write(b'0')
                 # geração de log com path do arquivo, o nivel de importância e a formatação das informações saidas
-                logging.basicConfig(filename='D:/VSCODE_PY/Projeto_placas/retorno.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-                logging.debug(f'A placa "{placa}" está presente no database: %s', True) 
+                # logging.basicConfig(filename='D:/VSCODE_PY/Projeto_placas/retorno.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+                # logging.debug(f'A placa "{placa}" está presente no database: %s', True)
             else:
+                arduino.write(b'1')
                 print(saida)
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     img = imagem()
     # processamento do método imagecapture não atrapalha os outros métodos, rodam ao mesmo tempo diminuindo o processamento
-    thread_processamnto = threading.Thread(target=img._ImageCapture(), daemon=True)
+    thread_processamnto = threading.Thread(target=img._ocrImagePlate(), daemon=True)
     thread_processamnto.start()
     
