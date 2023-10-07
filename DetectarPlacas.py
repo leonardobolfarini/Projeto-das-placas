@@ -3,9 +3,10 @@ import pytesseract
 import threading
 import pymysql
 import serial
-import logging
+import time
+# import logging
 
-arduino = serial.Serial("COM6", 9600)
+arduino = serial.Serial("COM5", 9600)
 
 pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
@@ -19,7 +20,7 @@ class database:
         self._host = None
         self._user = None
         self._password = None
-        self._database = None
+        self._database = None   
     
     @classmethod
     def _connect(cls):
@@ -37,6 +38,7 @@ class database:
     
 class imagem:
     arduino.write(b'0')
+    time.sleep(2)
     # Captura o frame da webcam
     def _ImageCapture(self):   
     # parâmetro passado se refere a qual webcam será capturada a imagem
@@ -132,9 +134,8 @@ class imagem:
             if saida == placa:
                 print('foi!!!!!!!!!!!!!')
                 arduino.write(b'0')
-                # geração de log com path do arquivo, o nivel de importância e a formatação das informações saidas
-                # logging.basicConfig(filename='D:/VSCODE_PY/Projeto_placas/retorno.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-                # logging.debug(f'A placa "{placa}" está presente no database: %s', True)
+                time.sleep(2)
+                arduino.write(b'1')
             else:
                 arduino.write(b'1')
                 print(saida)
@@ -142,6 +143,6 @@ class imagem:
 if __name__ == "__main__":  
     img = imagem()
     # processamento do método imagecapture não atrapalha os outros métodos, rodam ao mesmo tempo diminuindo o processamento
-    thread_processamnto = threading.Thread(target=img._ocrImagePlate(), daemon=True)
+    thread_processamnto = threading.Thread(target=img._ImageCapture(), daemon=True)
     thread_processamnto.start()
     
