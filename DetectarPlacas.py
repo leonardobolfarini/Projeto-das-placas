@@ -4,6 +4,7 @@ import threading
 import pymysql
 import serial
 import time
+import numpy as np
 # import logging
 
 arduino = serial.Serial("COM5", 9600)
@@ -85,12 +86,12 @@ class imagem:
                         # pinta um retangulo com essas coordenadas em cima da imagem passada, os dois ultimos parâmetros são a cor RGB e a grossura da linha
                         cv2.rectangle(image_resized, (x, y), (x + height, y + width), (90, 255, 35), 3)
                         roi = image_resized[y:y + width, x:x +height]
-                        cv2.imwrite('D:/VSCODE_PY/Projeto_placas/roi.png', roi)
+                        cv2.imwrite('D:/Projeto_placas/roi.png', roi)
     
     def _preProcessamentoRoi(self):
         max_width = 800
         max_height = 400    
-        roi = cv2.imread('D:/VSCODE_PY/Projeto_placas/roi.png')
+        roi = cv2.imread('D:/Projeto_placas/roi.png')
         if roi is None:
             return 
         
@@ -103,10 +104,10 @@ class imagem:
         gray_roi = cv2.cvtColor(roi_risezed, cv2.COLOR_BGR2GRAY)   
         n, binary_roi = cv2.threshold(gray_roi, 70, 255, cv2.THRESH_BINARY)
         blur_roi = cv2.GaussianBlur(binary_roi, (5, 5), 0)
-        cv2.imwrite('D:/VSCODE_PY/Projeto_placas/roi.png', blur_roi)
+        cv2.imwrite('D:/Projeto_placas/roi.png', blur_roi)
 
     def _ocrImagePlate(self):
-        roi = cv2.imread('D:/VSCODE_PY/Projeto_placas/roi.png')
+        roi = cv2.imread('D:/Projeto_placas/roi.png')
         if roi is not None:
             roi_resized = cv2.resize(roi, (800, 400))
             # cv2.imshow('roi', roi_resized)
@@ -134,8 +135,11 @@ class imagem:
             if saida == placa:
                 print('foi!!!!!!!!!!!!!')
                 arduino.write(b'0')
-                time.sleep(2)
+                time.sleep(5)
                 arduino.write(b'1')
+                black_img = np.zeros((400, 800))
+                cv2.imwrite('D:/Projeto_placas/roi.png', black_img)
+
             else:
                 arduino.write(b'1')
                 print(saida)
@@ -143,6 +147,6 @@ class imagem:
 if __name__ == "__main__":  
     img = imagem()
     # processamento do método imagecapture não atrapalha os outros métodos, rodam ao mesmo tempo diminuindo o processamento
-    thread_processamnto = threading.Thread(target=img._ImageCapture(), daemon=True)
+    thread_processamnto = threading.Thread(target=img._ocrImagePlate(), daemon=True)
     thread_processamnto.start()
     
