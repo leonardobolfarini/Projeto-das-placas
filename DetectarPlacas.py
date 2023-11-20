@@ -1,6 +1,5 @@
 import cv2
 import pytesseract
-import threading
 import pymysql
 # import serial
 import time
@@ -12,7 +11,7 @@ from datetime import datetime
 
 pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
-class database:
+class Database:
     _host:str
     _user:str
     _port:int
@@ -40,29 +39,15 @@ class database:
         except:
             print('Não foi possivel estabelecer a conexão com o banco de dados')
     
-class imagem:
-    # arduino.write(b'0')
-    # time.sleep(2)
+class Imagem:
     # Captura o frame da webcam
     def _ImageCapture(self):   
     # parâmetro passado se refere a qual webcam será capturada a imagem
         cap = cv2.VideoCapture(0)
-        validation, frame = cap.read()
-        while validation:
-            validation, frame = cap.read()
-            cv2.imshow('Webcam', frame)
-            # parâmetro passado se refere ao tempo em milisegundos entre cada captura
-            k = cv2.waitKey(2000)
-            # caso o botão com valor 113 (F2) seja apertado, o código é interrompido
-            if k == 113:
-                cap.release()
-                cv2.destroyAllWindows()
-                break
-            # chama função com o frame capturado
-            self._contorno_imagem(frame)
-            self._preProcessamentoRoi()
-            self._ocrImagePlate()
-
+        _, frame = cap.read()
+        cv2.waitKey(2000)
+        return frame
+    
     def _contorno_imagem(self, frame):
         if frame is not None:
             # parâmetros são o frame passado para o método e o tamanho a ser redimensionalizado
@@ -120,46 +105,49 @@ class imagem:
             saida = pytesseract.image_to_string(roi_resized, lang='eng', config=config)
             
             saida = saida.strip().upper()
+        return saida
 
-            db = database
-            db._host = 'roundhouse.proxy.rlwy.net' 
-            db._user = 'root'
-            db._port = 31800
-            db._password = 'Ed5CEEB2aFCbdF3D5c3GDBDgB4C4BedD'
-            db._database = 'cadastros'
-            connection = db._connect()
-            cursor = connection.cursor()
-            # consulta do banco de dados em SQL
-            cursor.execute(f"select placa_automovel from pessoas where placa_automovel = '{saida}';")
-            placa = cursor.fetchall()
+def abertura_cancela():
+    imagem = Imagem()
+    frame = imagem._ImageCapture()
+    while frame is not None:
+        frame = imagem._ImageCapture()
+        imagem._contorno_imagem(frame)
+        imagem._preProcessamentoRoi()
+        saida = imagem._ocrImagePlate()
+        print(saida)
 
-            if len(placa) > 0:
-                placa = placa[0][0]
-                placa = placa.strip().upper()
+        db = Database
+        db._host = 'roundhouse.proxy.rlwy.net' 
+        db._user = 'root'
+        db._port = 31800
+        db._password = 'Ed5CEEB2aFCbdF3D5c3GDBDgB4C4BedD'
+        db._database = 'cadastros'
+        connection = db._connect()
+        cursor = connection.cursor()
+        # consulta do banco de dados em SQL
+        cursor.execute(f"select placa_automovel from pessoas where placa_automovel = '{saida}';")
+        placa = cursor.fetchall()
 
-            if saida == placa:
-                print('foi!!!!!!!!!!!!!')
-                # arduino.write(b'0')
-                # time.sleep(5)
-                # arduino.write(b'1')
+        if len(placa) > 0:
+            placa = placa[0][0]
+            placa = placa.strip().upper()
 
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                log_message = f'{timestamp} - Cancela aberta - Placa {placa}'
+        if saida == placa:
+            print('foi!!!!!!!!!!!!!')
+            # arduino.write(b'0')
+            # time.sleep(5)
+            # arduino.write(b'1')
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_message = (f'{timestamp} - Cancela aberta - Placa {placa}')
+            cursor.execute(f'insert into logs values("{log_message}")')
+            connection.commit()
+            connection.close()
+            #black_img = np.zeros((400, 800))
+            #cv2.imwrite('D:/Projeto_placas/roi.png', black_img
 
-                cursor.execute(f'insert into logs values("{log_message}")')
-                connection.commit()
-                connection.close()
+        else:
+            # arduino.write(b'1')
+            print(saida)
 
-                #black_img = np.zeros((400, 800))
-                #cv2.imwrite('D:/Projeto_placas/roi.png', black_img)
-
-            else:
-                # arduino.write(b'1')
-                print(saida)
-
-if __name__ == "__main__":  
-    img = imagem()
-    # processamento do método imagecapture não atrapalha os outros métodos, rodam ao mesmo tempo diminuindo o processamento
-    thread_processamnto = threading.Thread(target=img._ocrImagePlate(), daemon=True)
-    thread_processamnto.start()
-    
+abertura_cancela()
