@@ -2,24 +2,27 @@ import cv2
 import pytesseract
 import threading
 import pymysql
-import serial
+# import serial
 import time
 import numpy as np
-# import logging
+import logging
+from datetime import datetime
 
-arduino = serial.Serial("COM5", 9600)
+# arduino = serial.Serial("COM6", 9600)
 
 pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
 class database:
     _host:str
     _user:str
+    _port:int
     _password:str
     _database:str
 
     def __init__(self):
         self._host = None
         self._user = None
+        self._port = None
         self._password = None
         self._database = None   
     
@@ -29,17 +32,17 @@ class database:
             connection = pymysql.connect(
                 host=cls._host,
                 user=cls._user,
+                port=cls._port,
                 password=cls._password,
                 database=cls._database
             )
-            cursor = connection.cursor()
-            return cursor
+            return connection
         except:
             print('Não foi possivel estabelecer a conexão com o banco de dados')
     
 class imagem:
-    arduino.write(b'0')
-    time.sleep(2)
+    # arduino.write(b'0')
+    # time.sleep(2)
     # Captura o frame da webcam
     def _ImageCapture(self):   
     # parâmetro passado se refere a qual webcam será capturada a imagem
@@ -119,11 +122,13 @@ class imagem:
             saida = saida.strip().upper()
 
             db = database
-            db._host = 'localhost'
+            db._host = 'roundhouse.proxy.rlwy.net' 
             db._user = 'root'
-            db._password = '.VINxBLOw[JfTdo-'
+            db._port = 31800
+            db._password = 'Ed5CEEB2aFCbdF3D5c3GDBDgB4C4BedD'
             db._database = 'cadastros'
-            cursor = db._connect()
+            connection = db._connect()
+            cursor = connection.cursor()
             # consulta do banco de dados em SQL
             cursor.execute(f"select placa_automovel from pessoas where placa_automovel = '{saida}';")
             placa = cursor.fetchall()
@@ -134,14 +139,22 @@ class imagem:
 
             if saida == placa:
                 print('foi!!!!!!!!!!!!!')
-                arduino.write(b'0')
-                time.sleep(5)
-                arduino.write(b'1')
-                black_img = np.zeros((400, 800))
-                cv2.imwrite('D:/Projeto_placas/roi.png', black_img)
+                # arduino.write(b'0')
+                # time.sleep(5)
+                # arduino.write(b'1')
+
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                log_message = f'{timestamp} - Cancela aberta - Placa {placa}'
+
+                cursor.execute(f'insert into logs values("{log_message}")')
+                connection.commit()
+                connection.close()
+
+                #black_img = np.zeros((400, 800))
+                #cv2.imwrite('D:/Projeto_placas/roi.png', black_img)
 
             else:
-                arduino.write(b'1')
+                # arduino.write(b'1')
                 print(saida)
 
 if __name__ == "__main__":  
