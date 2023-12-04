@@ -9,8 +9,6 @@ from datetime import datetime
 # variável que seta a porta do arduino(funciona apenas localmente)
 arduino = serial.Serial("COM6", 9600)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
-
 # classe que faz conexão com banco de dados
 class Database:
     _host:str
@@ -48,7 +46,8 @@ class Imagem:
         _, frame = cap.read()
         cv2.waitKey(2000)
         return frame
-    
+
+    # método que acha os contornos no frame 
     def _contorno_imagem(self, frame):
         if frame is not None:
             # parâmetros são o frame passado para o método e o tamanho a ser redimensionalizado
@@ -76,7 +75,8 @@ class Imagem:
                         cv2.rectangle(image_resized, (x, y), (x + height, y + width), (90, 255, 35), 3)
                         roi = image_resized[y:y + width, x:x +height]
                         return roi
-    
+
+    # método que faz processos para facilitar para o tesseract achar a string
     def _preProcessamentoRoi(self, roi):
         max_width = 800
         max_height = 400    
@@ -94,18 +94,18 @@ class Imagem:
         blur_roi = cv2.GaussianBlur(binary_roi, (5, 5), 0)
         return blur_roi
 
+    # função para o tesseract achar a string
     def _ocrImagePlate(self, roi):
         saida = ''
         if roi is not None:
             roi_resized = cv2.resize(roi, (800, 400))
-            # cv2.imshow('roi', roi_resized)
             # configuração de caracteres que o pytessetact irá analisar
             config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 --psm 6'
             # imagem a ser analisada as letras,a linguagem e a configuração passada acima
             saida = pytesseract.image_to_string(roi_resized, lang='eng', config=config)
             saida = saida.strip().upper()
-
         return saida
+        
 # função que abre a canela e faz outras coisas relacionadas a sua abertura
 def abertura_cancela():
     # instância a classe imagem para a procura da placa
