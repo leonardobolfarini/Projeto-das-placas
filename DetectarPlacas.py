@@ -1,15 +1,17 @@
 import cv2
 import pytesseract
 import pymysql
-# import serial
+import serial
 import time
 import numpy as np
 from datetime import datetime
 
-# arduino = serial.Serial("COM6", 9600)
+# variável que seta a porta do arduino(funciona apenas localmente)
+arduino = serial.Serial("COM6", 9600)
 
 pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
+# classe que faz conexão com banco de dados
 class Database:
     _host:str
     _user:str
@@ -22,7 +24,8 @@ class Database:
         self._user = None
         self._password = None
         self._database = None   
-    
+
+    # método de classe para gerar conexão com o banco de dados
     @classmethod
     def _connect(cls):
         try:
@@ -35,7 +38,8 @@ class Database:
             return connection
         except:
             print('Não foi possivel estabelecer a conexão com o banco de dados')
-    
+
+# classe que faz manipulação de imagens
 class Imagem:
     # Captura o frame da webcam
     def _ImageCapture(self):   
@@ -102,8 +106,9 @@ class Imagem:
             saida = saida.strip().upper()
 
         return saida
-
+# função que abre a canela e faz outras coisas relacionadas a sua abertura
 def abertura_cancela():
+    # instância a classe imagem para a procura da placa
     imagem = Imagem()
     frame = imagem._ImageCapture()
     while frame is not None:
@@ -111,13 +116,14 @@ def abertura_cancela():
         roi = imagem._contorno_imagem(frame)
         img_preprocessada = imagem._preProcessamentoRoi(roi)
         saida = imagem._ocrImagePlate(img_preprocessada)
-        print(saida)
 
+        # instância classe database com os valores do banco a utilizar
         db = Database
         db._host = '162.240.34.167' 
         db._user = 'devbr_wp_kqeph'
         db._password = '#rbwqU77X3Zy5Zz#'
         db._database = 'devbr_wp_yx08y'
+        # conecta a ele e gera um cursor para manipulação
         connection = db._connect()
         cursor = connection.cursor()
         # consulta do banco de dados em SQL
@@ -129,21 +135,28 @@ def abertura_cancela():
             placa = placa.strip().upper()
 
         if saida == placa:
+            # apenas para retorno visual
             print('foi!!!!!!!!!!!!!')
-            # arduino.write(b'0')
-            # time.sleep(5)
-            # arduino.write(b'1')
+            # retorna o valor 0 pro arduino(abre a cancela)
+            arduino.write(b'0')
+            # da um tempo de 5 segundo e retorna o valor 1 pro arduino(fecha a cancela)
+            time.sleep(5)
+            arduino.write(b'1')
+            # armazena a data e dia
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # gera um log
             log_message = (f'{timestamp} - Cancela aberta - Placa {placa}')
+            # executa um código pro banco adicionar esse log na tabela logs
             cursor.execute(f'insert into logs values(default, "{log_message}")')
+            # comete a ação e fecha a conexão
             connection.commit()
             connection.close()
-            black_img = np.zeros((400, 800))
-            cv2.imwrite('roi.png', black_img)
 
         else:
-            # arduino.write(b'1')
+            # deixa fechado
+            arduino.write(b'1')
             print(saida)
 
 if __name__ == '__main__':
+    # chama a função que executa tudo
     abertura_cancela()
